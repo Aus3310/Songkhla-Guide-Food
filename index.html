@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Songkhla Guide Food</title>
+
+  <!-- Tailwind v4 (Play CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script> <!-- :contentReference[oaicite:0]{index=0} -->
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    :root{
+      --bg: #0b0b0b;
+      --card: rgba(255,255,255,.06);
+      --stroke: rgba(255,255,255,.12);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --brand: #F59E0B; /* amber */
+      --brand2:#FB923C; /* orange */
+    }
+    body{ background: radial-gradient(1200px 600px at 20% 0%, rgba(245,158,11,.15), transparent 60%),
+                  radial-gradient(1200px 600px at 80% 10%, rgba(251,146,60,.12), transparent 55%),
+                  var(--bg);
+          color: var(--text); }
+    .glass{ background: var(--card); border: 1px solid var(--stroke); backdrop-filter: blur(10px); }
+    .soft{ transition: transform .25s ease, background-color .25s ease, border-color .25s ease, opacity .25s ease; }
+    .soft:hover{ transform: translateY(-2px); }
+    .fade-in{ animation: fadeIn .35s ease both; }
+    @keyframes fadeIn{ from{ opacity:0; transform: translateY(8px);} to{opacity:1; transform:none;} }
+
+    /* modal backdrop */
+    .modal-backdrop{ background: rgba(0,0,0,.65); }
+  </style>
+</head>
+
+<body class="min-h-screen">
+  <!-- Topbar -->
+  <header class="sticky top-0 z-40 border-b border-white/10 bg-black/40 backdrop-blur">
+    <div class="mx-auto max-w-6xl px-4 py-3 flex items-center gap-3">
+      <div class="flex items-center gap-2">
+        <div class="h-9 w-9 rounded-xl grid place-items-center glass">
+          <span class="text-lg">🍜</span>
+        </div>
+        <div class="leading-tight">
+          <div class="font-semibold tracking-tight">Songkhla Guide Food</div>
+          <div id="subtitle" class="text-xs text-white/60">
+            Find great food in Songkhla
+          </div>
+        </div>
+      </div>
+
+      <div class="ml-auto flex items-center gap-2">
+        <!-- Language switch (default EN) -->
+        <div class="glass rounded-full p-1 flex items-center gap-1">
+          <button id="btnEN" class="px-3 py-1 rounded-full text-sm soft bg-white/10">EN</button>
+          <button id="btnTH" class="px-3 py-1 rounded-full text-sm soft opacity-70">TH</button>
+        </div>
+
+        <button id="btnFavorites"
+          class="glass soft rounded-full px-4 py-2 text-sm border border-white/10 hover:border-[var(--brand)]">
+          Favorites
+        </button>
+
+        <button id="btnAccount"
+          class="glass soft rounded-full px-4 py-2 text-sm border border-white/10 hover:border-[var(--brand2)]">
+          Register
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="mx-auto max-w-6xl px-4 pt-8 pb-4">
+    <div class="glass rounded-3xl p-6 md:p-8 fade-in">
+      <div class="flex flex-col md:flex-row md:items-end gap-4">
+        <div class="flex-1">
+          <h1 id="heroTitle" class="text-2xl md:text-4xl font-semibold tracking-tight">
+            Explore Songkhla’s best local food
+          </h1>
+          <p id="heroDesc" class="mt-2 text-white/70 max-w-2xl">
+            Browse categories, view photos, save favorites, and open maps instantly.
+          </p>
+
+          <div class="mt-4 flex flex-wrap gap-2 text-xs text-white/70">
+            <span class="glass rounded-full px-3 py-1">🌶️ Local Southern</span>
+            <span class="glass rounded-full px-3 py-1">🦐 Seafood</span>
+            <span class="glass rounded-full px-3 py-1">☕ Cafe & Desserts</span>
+            <span class="glass rounded-full px-3 py-1">🥡 Street Food</span>
+          </div>
+        </div>
+
+        <div class="md:w-[360px] w-full">
+          <div class="glass rounded-2xl p-3">
+            <div class="text-xs text-white/60 mb-2" id="quickLabel">Quick search</div>
+            <input id="searchInput"
+              class="w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 outline-none focus:border-[var(--brand)]"
+              placeholder="Search by name, tag..."
+            />
+            <div class="mt-3 flex gap-2 min-w-0">
+              <select id="categorySelect"
+                class="flex-1 min-w-0 rounded-xl bg-black/30 border border-white/10 px-3 py-3 outline-none focus:border-[var(--brand)]">
+              </select>
+              <button id="clearBtn"
+                class="rounded-xl px-4 py-3 glass soft border border-white/10 hover:border-white/30">
+                Clear
+              </button>
+            </div>
+
+            <div class="mt-3">
+              <div class="text-xs text-white/60 mb-2" id="tagLabel">Popular tags</div>
+              <div id="tagChips" class="flex flex-wrap gap-2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="userBanner" class="mt-5 hidden glass rounded-2xl px-4 py-3 text-sm text-white/80"></div>
+    </div>
+  </section>
+
+  <!-- List -->
+  <main class="mx-auto max-w-6xl px-4 pb-10">
+    <div class="flex items-center justify-between gap-3 mb-3">
+      <div id="resultLabel" class="text-sm text-white/70">Loading…</div>
+      <div class="text-sm text-white/70">
+        <span id="modeLabel"></span>
+      </div>
+    </div>
+
+    <div id="cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+  </main>
+
+  <!-- Details Modal -->
+  <div id="detailModal" class="fixed inset-0 hidden z-50">
+    <div class="absolute inset-0 modal-backdrop"></div>
+    <div class="absolute inset-0 overflow-y-auto">
+      <div class="min-h-full flex items-end sm:items-center justify-center p-4">
+        <div class="w-full max-w-3xl glass rounded-3xl border border-white/10 overflow-hidden fade-in">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+            <div>
+              <div id="detailName" class="text-lg font-semibold"></div>
+              <div id="detailCat" class="text-xs text-white/60 mt-1"></div>
+            </div>
+            <button id="closeDetail" class="glass soft rounded-full px-4 py-2 text-sm">Close</button>
+          </div>
+
+          <div class="p-5">
+            <img id="detailCover" class="w-full h-56 object-cover rounded-2xl border border-white/10" alt="cover"/>
+
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="md:col-span-2">
+                <div id="detailDesc" class="text-sm text-white/80 leading-relaxed"></div>
+
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div class="glass rounded-2xl p-4 border border-white/10">
+                    <div class="text-xs text-white/60" id="hoursLabel">Hours</div>
+                    <div id="detailHours" class="mt-1 text-sm"></div>
+                  </div>
+                  <div class="glass rounded-2xl p-4 border border-white/10">
+                    <div class="text-xs text-white/60" id="phoneLabel">Contact</div>
+                    <div id="detailPhone" class="mt-1 text-sm"></div>
+                  </div>
+                </div>
+
+                <div class="mt-3 glass rounded-2xl p-4 border border-white/10">
+                  <div class="text-xs text-white/60" id="addrLabel">Address</div>
+                  <div id="detailAddress" class="mt-1 text-sm"></div>
+                </div>
+
+                <div class="mt-4">
+                  <div class="text-xs text-white/60 mb-2" id="foodPhotoLabel">Food photos</div>
+                  <div id="detailFoods" class="grid grid-cols-2 gap-3"></div>
+                </div>
+
+                <div class="mt-4">
+                  <div class="text-xs text-white/60 mb-2" id="menuLabel">Recommended menu</div>
+                  <ul id="detailRecs" class="space-y-2"></ul>
+                </div>
+              </div>
+
+              <div class="md:col-span-1">
+                <div class="glass rounded-2xl p-4 border border-white/10">
+                  <div class="text-xs text-white/60" id="rateLabel">Your rating</div>
+                  <div id="ratingStars" class="mt-2 flex gap-1"></div>
+                  <div id="ratingNote" class="mt-2 text-xs text-white/60"></div>
+                </div>
+
+                <div class="mt-3 glass rounded-2xl p-4 border border-white/10">
+                  <div class="text-xs text-white/60 mb-2" id="mapLabel">Map</div>
+                  <div id="mapBox" class="rounded-2xl overflow-hidden border border-white/10 bg-black/20 min-h-[180px] grid place-items-center text-sm text-white/60">
+                    No map
+                  </div>
+                </div>
+
+                <div class="mt-3 flex gap-2">
+                  <button id="detailFavBtn"
+                    class="flex-1 glass soft rounded-2xl px-4 py-3 border border-white/10 hover:border-[var(--brand)]">
+                    Add to favorites
+                  </button>
+                  <button id="openMapNewTab"
+                    class="glass soft rounded-2xl px-4 py-3 border border-white/10 hover:border-[var(--brand2)]">
+                    ↗
+                  </button>
+                </div>
+
+                <div class="mt-3" id="detailTags" class="flex flex-wrap gap-2"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Register Modal -->
+  <div id="regModal" class="fixed inset-0 hidden z-50">
+    <div class="absolute inset-0 modal-backdrop"></div>
+    <div class="absolute inset-0 overflow-y-auto">
+      <div class="min-h-full flex items-end sm:items-center justify-center p-4">
+        <div class="w-full max-w-lg glass rounded-3xl border border-white/10 overflow-hidden fade-in">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+            <div id="regTitle" class="text-lg font-semibold">Create account</div>
+            <button id="closeReg" class="glass soft rounded-full px-4 py-2 text-sm">Close</button>
+          </div>
+
+          <form id="regForm" class="p-5 space-y-3">
+            <div>
+              <label id="lblName" class="text-xs text-white/60">Name</label>
+              <input id="nameInput" required
+                class="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 outline-none focus:border-[var(--brand)]"
+                placeholder="Your name"/>
+            </div>
+
+            <div>
+              <label id="lblNation" class="text-xs text-white/60">Nationality</label>
+              <input id="nationInput" required
+                class="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 outline-none focus:border-[var(--brand)]"
+                placeholder="e.g., Thai / Malaysian / Chinese"/>
+            </div>
+
+            <div>
+              <label id="lblAge" class="text-xs text-white/60">Age</label>
+              <input id="ageInput" type="number" min="1" max="120" required
+                class="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 outline-none focus:border-[var(--brand)]"
+                placeholder="18"/>
+            </div>
+
+            <div>
+              <label id="lblPass" class="text-xs text-white/60">Password</label>
+              <input id="passInput" type="password" minlength="6" required
+                class="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 outline-none focus:border-[var(--brand)]"
+                placeholder="At least 6 characters"/>
+            </div>
+
+            <div>
+              <label id="lblPass2" class="text-xs text-white/60">Confirm password</label>
+              <input id="passInput2" type="password" minlength="6" required
+                class="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 outline-none focus:border-[var(--brand)]"
+                placeholder="Re-enter password"/>
+            </div>
+
+            <button type="button" id="openLoginFromReg"
+              class="w-full rounded-2xl px-4 py-3 glass soft border border-white/10 hover:border-white/30">
+              Already have an account? Login
+            </button>
+
+            <button id="submitReg"
+              class="w-full rounded-2xl px-4 py-3 font-medium text-black bg-[var(--brand)] soft hover:opacity-90">
+              Create account
+            </button>
+
+            <div id="regHint" class="text-xs text-white/60">
+              Data will be saved to Google Sheet.
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="loginModal" class="fixed inset-0 hidden z-50">
+    <div class="absolute inset-0 modal-backdrop"></div>
+    <div class="absolute inset-0 overflow-y-auto">
+      <div class="min-h-full flex items-end sm:items-center justify-center p-4">
+        <div class="w-full max-w-lg glass rounded-3xl border border-white/10 overflow-hidden fade-in">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+            <div id="loginTitle" class="text-lg font-semibold">Login</div>
+            <button id="closeLogin" class="glass soft rounded-full px-4 py-2 text-sm">Close</button>
+          </div>
+
+          <form id="loginForm" class="p-5 space-y-3">
+            <div>
+              <label id="lblLoginId" class="text-xs text-white/60">Account ID</label>
+              <input id="loginIdInput" required
+                class="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 outline-none focus:border-[var(--brand)]"
+                placeholder="e.g., 1" />
+            </div>
+
+            <div>
+              <label id="lblLoginPass" class="text-xs text-white/60">Password</label>
+              <input id="loginPassInput" type="password" required
+                class="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 outline-none focus:border-[var(--brand)]"
+                placeholder="Your password" />
+            </div>
+
+            <button id="submitLogin"
+              class="w-full rounded-2xl px-4 py-3 font-medium text-black bg-[var(--brand)] soft hover:opacity-90">
+              Login
+            </button>
+
+            <button type="button" id="openRegFromLogin"
+              class="w-full rounded-2xl px-4 py-3 glass soft border border-white/10 hover:border-white/30">
+              New here? Create account
+            </button>
+
+            <div id="loginHint" class="text-xs text-white/60">
+              Use your Account ID that you got after registration.
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <script src="./js/app.js"></script>
+  <!-- <script src="./js/file.js"></script> -->
+</body>
+</html>
